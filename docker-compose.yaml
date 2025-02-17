@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  # Web Server Service
+  webserver:
+    image: nginx:alpine
+    container_name: ${PROJECT_NAME}-webserver
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "80:80"
+      - "510:443"
+    volumes:
+      - ./src:/var/www/
+      - ./nginx/conf.d/:/etc/nginx/conf.d/
+    depends_on:
+      - ui
+    networks:
+      - vc_networks
+
+  # UI Service
+  ui:
+    container_name: ${PROJECT_NAME}-ui
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      NEXT_PUBLIC_API_HOST: ${NEXT_PUBLIC_API_HOST}
+    volumes:
+      - ./src/ui:/var/www/ui
+    restart: unless-stopped
+    ports:
+      - 3515:3000
+    networks:
+      - vc_networks
+
+networks:
+  vc_networks:
