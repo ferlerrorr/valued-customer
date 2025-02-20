@@ -1,13 +1,15 @@
-// pages/api/valuedCustomer/valuedCustomer.ts
-
 import { NextApiRequest, NextApiResponse } from "next";
 import mysql from "mysql2/promise";
+import path from "path";
+import dotenv from "dotenv";
+
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 const pool = mysql.createPool({
-  host: "10.60.15.119",
-  user: "ferl",
-  password: "Welcome#01",
-  database: "ssdpos",
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
@@ -20,8 +22,6 @@ export default async function handler(
   if (req.method === "GET") {
     try {
       const connection = await pool.getConnection();
-
-      // Fetch only rows where Active = 1
       const [rows] = await connection.execute(
         "SELECT * FROM valuedcustomer WHERE Active = 1"
       );
