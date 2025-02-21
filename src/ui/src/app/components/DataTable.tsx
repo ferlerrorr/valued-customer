@@ -126,8 +126,8 @@ const DataTable: React.FC = () => {
       {/* Table */}
       <Table className='table-fixed w-full'>
         {/* Table Head */}
-        <TableHead className='sticky top-0 bg-gray-100 shadow-md border-l- border-gray-300'>
-          <TableRow className='border-b'>
+        <TableHead className='sticky top-0 bg-gray-100 shadow-md border border-gray-300'>
+          <TableRow className='border border-gray-00'>
             {[
               { key: "VCustID", width: "w-[100px] text-left" },
               { key: "VCustName", width: "w-[200px] text-left" },
@@ -212,28 +212,55 @@ const DataTable: React.FC = () => {
             {Object.entries(selectedCustomer).map(([key, value]) => (
               <div key={key} className='mb-3'>
                 <label className='block text-sm font-medium mb-1'>{key}</label>
-                <Input
-                  value={value}
-                  onChange={(e) =>
-                    setSelectedCustomer({
-                      ...selectedCustomer,
-                      [key]: e.target.value,
-                    })
-                  }
-                  disabled={key === "VCustID"}
-                />
+
+                {key === "Active" ? (
+                  // Toggle Slider for Active Status (Reversed Logic)
+                  <div
+                    className={`relative w-14 h-7 flex items-center rounded-full pl-[2px] cursor-pointer transition-colors ${
+                      selectedCustomer.Active === 1
+                        ? "bg-green-500"
+                        : "bg-gray-600"
+                    }`}
+                    onClick={() =>
+                      setSelectedCustomer({
+                        ...selectedCustomer,
+                        Active: selectedCustomer.Active === 1 ? 0 : 1, // Toggle active state
+                      })
+                    }
+                  >
+                    <div
+                      className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform ${
+                        selectedCustomer.Active === 1
+                          ? "translate-x-0"
+                          : "translate-x-7"
+                      }`}
+                    ></div>
+                  </div>
+                ) : (
+                  // Regular Input for Other Fields
+                  <Input
+                    value={value}
+                    onChange={(e) =>
+                      setSelectedCustomer({
+                        ...selectedCustomer,
+                        [key]: e.target.value,
+                      })
+                    }
+                    disabled={key === "VCustID"}
+                  />
+                )}
               </div>
             ))}
 
             <div className='flex justify-end gap-2 mt-4'>
+              <Button variant='primary' onClick={handleUpdate}>
+                Update
+              </Button>
               <Button
                 variant='outline'
                 onClick={() => setSelectedCustomer(null)}
               >
                 Cancel
-              </Button>
-              <Button variant='primary' onClick={handleUpdate}>
-                Update
               </Button>
             </div>
           </div>

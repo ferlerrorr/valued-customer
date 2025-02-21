@@ -19,28 +19,27 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (req.method === "GET") {
-    try {
-      const connection = await pool.getConnection();
-      const [rows] = await connection.execute(
-        "SELECT * FROM valuedcustomer WHERE Active = 1"
-      );
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
 
-      console.log(
-        "Filtered MySQL Response (Active = 1):",
-        JSON.stringify(rows, null, 2)
-      );
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    const [rows] = await connection.execute(
+      "SELECT * FROM valuedcustomer ORDER BY Active DESC"
+    );
 
-      connection.release();
-      res.status(200).json(rows);
-    } catch (error) {
-      console.error("Database connection or query failed:", error);
-      res.status(500).json({
-        error: "Database connection or query failed",
-        details: (error as Error).message,
-      });
-    }
-  } else {
-    res.status(405).json({ error: "Method Not Allowed" });
+    console.log("MySQL Response:", JSON.stringify(rows, null, 2));
+    res.status(200).json(rows);
+    localStorage.setItem("valuedCustomers", JSON.stringify(rows));
+  } catch (error) {
+    console.error("Database connection or query failed:", error);
+    res.status(500).json({
+      error: "Database connection or query failed",
+      details: (error as Error).message,
+    });
+  } finally {
+    if (connection) connection.release();
   }
 }
