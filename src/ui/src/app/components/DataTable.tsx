@@ -13,7 +13,7 @@ interface Customer {
   MotherCode: string;
 }
 
-const PAGE_SIZES = [10, 25, 50, 100, "Full Page"] as const;
+const PAGE_SIZES = [10, 25, 50, 100, 500, "Full Page"] as const;
 type PageSizeOption = (typeof PAGE_SIZES)[number];
 
 const DataTable: React.FC = () => {
@@ -85,65 +85,82 @@ const DataTable: React.FC = () => {
   };
 
   return (
-    <div className='p-4'>
-      {/* Search Input */}
-      <Input
-        type='text'
-        placeholder='Search...'
-        value={search}
-        onChange={(e) => {
-          setSearch(e.target.value);
-          setPage(1);
-        }}
-        className='mb-4'
-      />
+    <div className='p-4 w-[100%]'>
+      <div className=' flex justify-between items-center mb-[1em]'>
+        {/* Page Size Selector */}
+        <div className='flex items-center gap-2'>
+          <label className='text-sm font-medium'>Rows per page:</label>
+          <select
+            className='border rounded px-2 py-1'
+            value={pageSize}
+            onChange={(e) => {
+              const newSize =
+                e.target.value === "Full Page"
+                  ? "Full Page"
+                  : Number(e.target.value);
+              setPageSize(newSize as PageSizeOption);
+              setPage(1);
+            }}
+          >
+            {PAGE_SIZES.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      {/* Page Size Selector */}
-      <div className='mb-4 flex items-center gap-2'>
-        <label className='text-sm font-medium'>Rows per page:</label>
-        <select
-          className='border rounded px-2 py-1'
-          value={pageSize}
+        {/* Search Input */}
+        <Input
+          type='text'
+          placeholder='Search...'
+          value={search}
           onChange={(e) => {
-            const newSize =
-              e.target.value === "Full Page"
-                ? "Full Page"
-                : Number(e.target.value);
-            setPageSize(newSize as PageSizeOption);
+            setSearch(e.target.value);
             setPage(1);
           }}
-        >
-          {PAGE_SIZES.map((size) => (
-            <option key={size} value={size}>
-              {size}
-            </option>
-          ))}
-        </select>
+          className='w-[17em]'
+        />
       </div>
 
       {/* Table */}
-      <Table>
-        <TableHead>
-          <TableRow>
+      <Table className='table-fixed w-full'>
+        {/* Table Head */}
+        <TableHead className='sticky top-0 bg-gray-100 shadow-md border-l- border-gray-300'>
+          <TableRow className='border-b'>
             {[
-              "VCustID",
-              "VCustName",
-              "Active",
-              "UpdateID",
-              "MotherCode",
-              "Actions",
-            ].map((col, index) => (
-              <TableCell
+              { key: "VCustID", width: "w-[100px] text-left" },
+              { key: "VCustName", width: "w-[200px] text-left" },
+              { key: "Active", width: "w-[100px] text-center" },
+              { key: "UpdateID", width: "w-[150px] text-left" },
+              { key: "MotherCode", width: "w-[150px] text-left" },
+              { key: "Actions", width: "w-[100px] text-center" },
+            ].map(({ key, width }, index) => (
+              <th
                 key={index}
-                className='cursor-pointer'
-                onClick={() => handleSort(col as keyof Customer)}
+                className={`cursor-pointer px-4 py-2 ${width} border border-gray-300 bg-gray-100 text-gray-700`}
+                onClick={() => handleSort(key as keyof Customer)}
               >
-                {col}{" "}
-                {sortColumn === col ? (sortOrder === "asc" ? "↑" : "↓") : ""}
-              </TableCell>
+                <div className='flex items-center justify-between w-full'>
+                  <span>{key}</span>
+                  <span
+                    className={`ml-2 ${
+                      sortColumn === key ? "text-black" : "text-gray-400"
+                    }`}
+                  >
+                    {sortColumn === key
+                      ? sortOrder === "asc"
+                        ? "↑"
+                        : "↓"
+                      : "⇅"}
+                  </span>
+                </div>
+              </th>
             ))}
           </TableRow>
         </TableHead>
+
+        {/* Table Body */}
         <TableBody>
           {paginatedData.map((customer) => (
             <TableRow key={customer.VCustID}>
@@ -154,7 +171,7 @@ const DataTable: React.FC = () => {
               </TableCell>
               <TableCell>{customer.UpdateID}</TableCell>
               <TableCell>{customer.MotherCode}</TableCell>
-              <TableCell>
+              <TableCell className='w-[100px]'>
                 <Button
                   variant='outline'
                   onClick={() => handleEditClick(customer)}
