@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import mysql from "mysql2/promise";
+import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
 
@@ -23,23 +24,35 @@ export default async function handler(
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  let connection;
   try {
-    connection = await pool.getConnection();
-    const [rows] = await connection.execute(
-      "SELECT * FROM valuedcustomer ORDER BY Active DESC"
+    const [rows] = await pool.execute(
+      "SELECT VCustID, VCustName, Active, UpdateID, MotherCode FROM valuedcustomer ORDER BY Active DESC"
     );
 
-    console.log("MySQL Response:", JSON.stringify(rows, null, 2));
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(404).json({ error: "No data found" });
+    }
+
+    // Convert the data to JSON format
+    const jsonData = JSON.stringify(rows, null, 2);
+
+    // Define the file path to store the response
+    const filePath = path.join(
+      process.cwd(),
+      "public/customerData",
+      "customerData.json"
+    );
+
+    // Write the JSON data to a file in the public folder
+    fs.writeFileSync(filePath, jsonData, "utf-8");
+
+    // Return the data in the API response
     res.status(200).json(rows);
-    localStorage.setItem("valuedCustomers", JSON.stringify(rows));
   } catch (error) {
-    console.error("Database connection or query failed:", error);
+    console.error("Database query failed:", error);
     res.status(500).json({
-      error: "Database connection or query failed",
+      error: "Database query failed",
       details: (error as Error).message,
     });
-  } finally {
-    if (connection) connection.release();
   }
 }

@@ -35,42 +35,47 @@ services:
     networks:
       - vc_networks
 
-  #   #Database Service
-  # db:
-  #   image: mysql:8.0
-  #   container_name: ${PROJECT_NAME}-db
-  #   restart: unless-stopped
-  #   tty: true
-  #   ports:
-  #     - "3306:3306"
-  #   volumes:
-  #     - ./mysql/data:/var/lib/mysql
-  #   environment:
-  #     - MYSQL_DATABASE=${MYSQL_DATABASE}
-  #     - MYSQL_USER=${MYSQL_USER}
-  #     - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-  #     - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-  #   networks:
-  #     - vc_networks
+    #Database Service
+  db:
+    image: mysql:8.0
+    container_name: ${PROJECT_NAME}-db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - PHP_UPLOAD_MAX_FILESIZE=1G
+      - PHP_POST_MAX_SIZE=1G
+    networks:
+      - vc_networks
 
-  # # phpMyAdmin Service
-  # phpmyadmin:
-  #   image: phpmyadmin/phpmyadmin
-  #   container_name: ${PROJECT_NAME}-phpmyadmin
-  #   restart: always
-  #   environment:
-  #     - PMA_HOST=${PMA_HOST}
-  #     - PMA_USER=${PMA_USER}
-  #     - PMA_PASSWORD=${PMA_PASSWORD}
-  #     - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-  #   ports:
-  #     - "8080:80"
-  #   links:
-  #     - db:db
-  #   depends_on:
-  #     - db
-  #   networks:
-  #     - vc_networks
+  # phpMyAdmin Service
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: ${PROJECT_NAME}-phpmyadmin
+    restart: always
+    environment:
+      - PMA_HOST=${PMA_HOST}
+      - PMA_USER=${PMA_USER}
+      - PMA_PASSWORD=${PMA_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - UPLOAD_LIMIT=10000M
+    ports:
+      - "8080:80"
+    volumes:
+      - ./config/phpmyadmin/php.ini:/etc/php/7.x/fpm/conf.d/99-upload.ini
+    links:
+      - db:db
+    depends_on:
+      - db
+    networks:
+      - vc_networks
 
 networks:
   vc_networks:

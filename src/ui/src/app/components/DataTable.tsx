@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useEffect, useState } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -29,12 +27,27 @@ const DataTable: React.FC = () => {
   );
 
   useEffect(() => {
-    fetch("/api/valuedCustomer/valuedCustomer")
-      .then((res) => res.json())
-      .then((data: Customer[]) => {
-        setData(data);
-        setFilteredData(data);
-      });
+    const fetchData = async () => {
+      try {
+        const localResponse = await fetch("/customerData/customerData.json");
+        if (localResponse.ok) {
+          const localData: Customer[] = await localResponse.json();
+          setData(localData);
+          setFilteredData(localData);
+        }
+
+        const apiResponse = await fetch("api/valuedCustomer/valuedCustomer");
+        if (!apiResponse.ok) throw new Error("API failed");
+
+        const apiData: Customer[] = await apiResponse.json();
+        setData(apiData);
+        setFilteredData(apiData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -51,9 +64,14 @@ const DataTable: React.FC = () => {
     setSortOrder(order);
     setFilteredData(
       [...filteredData].sort((a, b) => {
-        if (a[column] < b[column]) return order === "asc" ? -1 : 1;
-        if (a[column] > b[column]) return order === "asc" ? 1 : -1;
-        return 0;
+        if (typeof a[column] === "number" && typeof b[column] === "number") {
+          return order === "asc"
+            ? (a[column] as number) - (b[column] as number)
+            : (b[column] as number) - (a[column] as number);
+        }
+        return order === "asc"
+          ? String(a[column]).localeCompare(String(b[column]))
+          : String(b[column]).localeCompare(String(a[column]));
       })
     );
   };
@@ -69,7 +87,7 @@ const DataTable: React.FC = () => {
         );
 
   const handleEditClick = (customer: Customer) => {
-    setSelectedCustomer(customer);
+    setSelectedCustomer({ ...customer });
   };
 
   const handleUpdate = () => {
@@ -81,13 +99,19 @@ const DataTable: React.FC = () => {
           : customer
       )
     );
+    setFilteredData((prevData) =>
+      prevData.map((customer) =>
+        customer.VCustID === selectedCustomer.VCustID
+          ? selectedCustomer
+          : customer
+      )
+    );
     setSelectedCustomer(null);
   };
 
   return (
-    <div className='p-4 w-[100%]'>
-      <div className=' flex justify-between items-center mb-[1em]'>
-        {/* Page Size Selector */}
+    <div className='p-4 w-full'>
+      <div className='flex justify-between items-center mb-4'>
         <div className='flex items-center gap-2'>
           <label className='text-sm font-medium'>Rows per page:</label>
           <select
@@ -109,8 +133,6 @@ const DataTable: React.FC = () => {
             ))}
           </select>
         </div>
-
-        {/* Search Input */}
         <Input
           type='text'
           placeholder='Search...'
@@ -119,7 +141,7 @@ const DataTable: React.FC = () => {
             setSearch(e.target.value);
             setPage(1);
           }}
-          className='w-[17em]'
+          className='w-72'
         />
       </div>
 
