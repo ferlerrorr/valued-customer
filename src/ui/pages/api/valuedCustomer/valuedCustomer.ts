@@ -26,7 +26,11 @@ export default async function handler(
 
   try {
     const [rows] = await pool.execute(
-      "SELECT VCustID, VCustName, Active, UpdateID, MotherCode FROM valuedcustomer ORDER BY Active DESC"
+      `SELECT VCustID, VCustName, Active, UpdateID, MotherCode, Vgroup, 
+              (SELECT VCustName FROM valuedcustomer AS parent WHERE parent.VCustID = child.MotherCode) AS CompanyName, 
+              created_at
+       FROM valuedcustomer AS child
+       ORDER BY Active DESC`
     );
 
     if (!Array.isArray(rows) || rows.length === 0) {

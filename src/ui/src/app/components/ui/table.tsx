@@ -33,7 +33,9 @@ export const TableCell: React.FC<TableCellProps> = ({
 }) => (
   <td
     {...props}
-    className={`px-4 py-2 border-r border-gray-300 ${className || ""}`}
+    className={`px-3 py-2 border-r border-gray-300 text-[.8em] ${
+      className || ""
+    }`}
   >
     {children}
   </td>

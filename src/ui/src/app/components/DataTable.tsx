@@ -9,9 +9,12 @@ interface Customer {
   Active: number;
   UpdateID: number;
   MotherCode: string;
+  Vgroup: string;
+  CompanyName: string;
+  created_at: Date;
 }
 
-const PAGE_SIZES = [10, 25, 50, 100, 500, "Full Page"] as const;
+const PAGE_SIZES = [10, 25, 50, 100, 500] as const;
 type PageSizeOption = (typeof PAGE_SIZES)[number];
 
 const DataTable: React.FC = () => {
@@ -50,41 +53,97 @@ const DataTable: React.FC = () => {
     fetchData();
   }, []);
 
+  const [searchColumn, setSearchColumn] = useState<
+    | "All"
+    | "VCustID"
+    | "VCustName"
+    | "Active"
+    | "UpdateID"
+    | "MotherCode"
+    | "Vgroup"
+    | "CompanyName"
+    | "created_at"
+  >("All");
+
   useEffect(() => {
     setFilteredData(
-      data.filter((customer) =>
-        customer.VCustName.toLowerCase().includes(search.toLowerCase())
-      )
+      data.filter((customer) => {
+        if (searchColumn === "All") {
+          return Object.entries(customer).some(
+            ([key, value]) =>
+              key !== "Actions" &&
+              String(value).toLowerCase().includes(search.toLowerCase())
+          );
+        } else if (searchColumn === "created_at") {
+          // Check if any alphanumeric character is present
+          return (
+            /\w/.test(search) &&
+            String(customer[searchColumn])
+              .toLowerCase()
+              .includes(search.toLowerCase())
+          );
+        } else {
+          return String(customer[searchColumn])
+            .toLowerCase()
+            .includes(search.toLowerCase());
+        }
+      })
     );
-  }, [search, data]);
+  }, [search, searchColumn, data]);
 
-  const handleSort = (column: keyof Customer) => {
+  const columnMap: Record<string, keyof Customer> = {
+    CustumerID: "VCustID",
+    CustumerName: "VCustName",
+    "Active = 1 or 0": "Active",
+    Group: "Vgroup",
+    UpdateID: "UpdateID",
+    DateEnrolled: "created_at",
+    CompanyName: "CompanyName",
+    MotherCode: "MotherCode",
+  };
+
+  const handleSort = (columnLabel: string) => {
+    const column = columnMap[columnLabel];
+    if (!column) return;
+
     const order = sortColumn === column && sortOrder === "asc" ? "desc" : "asc";
     setSortColumn(column);
     setSortOrder(order);
+
     setFilteredData(
       [...filteredData].sort((a, b) => {
-        if (typeof a[column] === "number" && typeof b[column] === "number") {
+        const valA = a[column];
+        const valB = b[column];
+
+        // Handle null values (push nulls to bottom)
+        if (valA === null) return order === "asc" ? 1 : -1;
+        if (valB === null) return order === "asc" ? -1 : 1;
+
+        // Sort dates properly
+        if (column === "created_at") {
           return order === "asc"
-            ? (a[column] as number) - (b[column] as number)
-            : (b[column] as number) - (a[column] as number);
+            ? new Date(valA).getTime() - new Date(valB).getTime()
+            : new Date(valB).getTime() - new Date(valA).getTime();
         }
+
+        // Sort numbers correctly
+        if (typeof valA === "number" && typeof valB === "number") {
+          return order === "asc" ? valA - valB : valB - valA;
+        }
+
+        // Sort strings correctly
         return order === "asc"
-          ? String(a[column]).localeCompare(String(b[column]))
-          : String(b[column]).localeCompare(String(a[column]));
+          ? String(valA).localeCompare(String(valB))
+          : String(valB).localeCompare(String(valA));
       })
     );
   };
+  const totalPages = Math.ceil(filteredData.length / Number(pageSize));
 
-  const totalPages =
-    pageSize === "Full Page" ? 1 : Math.ceil(filteredData.length / pageSize);
-  const paginatedData =
-    pageSize === "Full Page"
-      ? filteredData
-      : filteredData.slice(
-          (page - 1) * Number(pageSize),
-          page * Number(pageSize)
-        );
+  const paginatedData = filteredData.slice(
+    (page - 1) * Number(pageSize),
+    page * Number(pageSize)
+  );
 
   const handleEditClick = (customer: Customer) => {
     setSelectedCustomer({ ...customer });
@@ -113,54 +172,82 @@ const DataTable: React.FC = () => {
     <div className='p-4 w-full'>
       <div className='flex justify-between items-center mb-4'>
         <div className='flex items-center gap-2'>
-          <label className='text-sm font-medium'>Rows per page:</label>
-          <select
-            className='border rounded px-2 py-1'
-            value={pageSize}
+          <div>
+            <label className='text-sm font-medium'>Rows per page:</label>
+            <select
+              className='border rounded px-2 py-1'
+              value={pageSize}
+              onChange={(e) => {
+                const newSize =
+                  e.target.value === "Full Page"
+                    ? "Full Page"
+                    : Number(e.target.value);
+                setPageSize(newSize as PageSizeOption);
+                setPage(1);
+              }}
+            >
+              {PAGE_SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className='flex items-center justify-center gap-1'>
+          <label className='text-sm font-medium'>Search In:</label>
+          <div className='relative'>
+            <select
+              className='border rounded py-2 px-2 pr-6 appearance-none'
+              value={searchColumn}
+              onChange={(e) =>
+                setSearchColumn(e.target.value as keyof Customer | "All")
+              }
+            >
+              <option value='All'>All Columns</option>
+              <option value='VCustID'>Customer ID</option>
+              <option value='VCustName'>Customer Name</option>
+              <option value='Active'>Active</option>
+              <option value='UpdateID'>Update ID</option>
+              <option value='MotherCode'>Mother Code</option>
+              <option value='Vgroup'>Group</option>
+              <option value='CompanyName'>Company Name</option>
+              <option value='created_at'>Date Enrolled</option>
+            </select>
+            <div className='absolute inset-y-0 right-3 flex items-center pointer-events-none text-[.1em]'>
+              ╲╱
+            </div>
+          </div>
+          <Input
+            type='text'
+            placeholder='Search...'
+            value={search}
             onChange={(e) => {
-              const newSize =
-                e.target.value === "Full Page"
-                  ? "Full Page"
-                  : Number(e.target.value);
-              setPageSize(newSize as PageSizeOption);
+              setSearch(e.target.value);
               setPage(1);
             }}
-          >
-            {PAGE_SIZES.map((size) => (
-              <option key={size} value={size}>
-                {size}
-              </option>
-            ))}
-          </select>
+            className='w-72'
+          />
         </div>
-        <Input
-          type='text'
-          placeholder='Search...'
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          className='w-72'
-        />
       </div>
-
       {/* Table */}
       <Table className='table-fixed w-full'>
-        {/* Table Head */}
         <TableHead className='sticky top-0 bg-gray-100 shadow-md border border-gray-300'>
           <TableRow className='border border-gray-00'>
             {[
-              { key: "VCustID", width: "w-[100px] text-left" },
-              { key: "VCustName", width: "w-[200px] text-left" },
-              { key: "Active", width: "w-[100px] text-center" },
-              { key: "UpdateID", width: "w-[150px] text-left" },
-              { key: "MotherCode", width: "w-[150px] text-left" },
-              { key: "Actions", width: "w-[100px] text-center" },
-            ].map(({ key, width }, index) => (
+              "CustumerID",
+              "CustumerName",
+              "Active = 1 or 0",
+              "UpdateID",
+              "MotherCode",
+              "Group",
+              "CompanyName",
+              "DateEnrolled",
+              "Actions",
+            ].map((key, index) => (
               <th
                 key={index}
-                className={`cursor-pointer px-4 py-2 ${width} border border-gray-300 bg-gray-100 text-gray-700`}
+                className={`cursor-pointer px-4 py-2 border border-gray-300 bg-gray-100 text-gray-700`}
                 onClick={() => handleSort(key as keyof Customer)}
               >
                 <div className='flex items-center justify-between w-full'>
@@ -181,8 +268,6 @@ const DataTable: React.FC = () => {
             ))}
           </TableRow>
         </TableHead>
-
-        {/* Table Body */}
         <TableBody>
           {paginatedData.map((customer) => (
             <TableRow key={customer.VCustID}>
@@ -193,7 +278,14 @@ const DataTable: React.FC = () => {
               </TableCell>
               <TableCell>{customer.UpdateID}</TableCell>
               <TableCell>{customer.MotherCode}</TableCell>
-              <TableCell className='w-[100px]'>
+              <TableCell>{customer.Vgroup}</TableCell>
+              <TableCell>{customer.CompanyName}</TableCell>
+              <TableCell>
+                {customer.created_at
+                  ? new Date(customer.created_at).toISOString().split("T")[0] // Extract YYYY-MM-DD
+                  : "N/A"}
+              </TableCell>
+              <TableCell>
                 <Button
                   variant='outline'
                   onClick={() => handleEditClick(customer)}
@@ -207,7 +299,7 @@ const DataTable: React.FC = () => {
       </Table>
 
       {/* Pagination Controls */}
-      {pageSize !== "Full Page" && (
+      {pageSize && (
         <div className='flex justify-between mt-4'>
           <Button disabled={page === 1} onClick={() => setPage(page - 1)}>
             Previous
