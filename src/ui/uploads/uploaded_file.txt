@@ -1,0 +1,12 @@
+------WebKitFormBoundarymXKnm0pymuExpOYP
+Content-Disposition: form-data; name="file"; filename="vcregister.csv"
+Content-Type: text/csv
+
+﻿Customer Name,Mother Code,Group
+"2025002740 RODRIGUEZ, JOHN PAUL BOBIER",9000016200,CA2
+"2025002755 MATEO, FERNANDO DOCTOR",9000016200,CA2
+"2025002756 AGRAMON, ALLIS MAHUSAY",9000016200,CA2
+"2025002757 HORCA, JOSEPH 0",9000016200,CA2
+"2025002758 MAGTALAS, VINCE JOSEPH RABORAR",9000016200,CA2
+
+------WebKitFormBoundarymXKnm0pymuExpOYP--
