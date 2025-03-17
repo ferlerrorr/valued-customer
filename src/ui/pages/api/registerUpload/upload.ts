@@ -34,6 +34,19 @@ async function extractCSVContent(req: IncomingMessage): Promise<string> {
   });
 }
 
+// Custom function to correctly split CSV lines
+function parseCSVLine(line: string): string[] {
+  const regex = /(?:\"([^\"]*)\")|([^\",]+)/g;
+  const result: string[] = [];
+  let match;
+
+  while ((match = regex.exec(line)) !== null) {
+    result.push(match[1] !== undefined ? match[1] : match[2]);
+  }
+
+  return result.map((cell) => cell.trim());
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -45,8 +58,6 @@ export default async function handler(
   try {
     // Extract CSV content
     const csvContent = await extractCSVContent(req);
-
-    // Save the file temporarily
     const tempFilePath = path.join("/tmp", `upload-${Date.now()}.csv`);
     fs.writeFileSync(tempFilePath, csvContent);
 
@@ -56,9 +67,7 @@ export default async function handler(
 
     const rows: string[][] = [];
     for await (const line of rl) {
-      rows.push(
-        line.split(",").map((cell) => cell.trim().replace(/^"|"$/g, ""))
-      ); // Trim spaces & remove quotes
+      rows.push(parseCSVLine(line)); // Use the improved CSV parsing function
     }
 
     // Extract and validate headers
@@ -78,7 +87,6 @@ export default async function handler(
 
     // Cleanup: Remove the temporary file
     fs.unlinkSync(tempFilePath);
-
     res.status(200).json({ data: jsonData });
   } catch (error) {
     res.status(400).json({

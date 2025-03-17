@@ -16,7 +16,6 @@ export default function Home() {
         <Button variant='primary' onClick={() => setIsOpen(true)}>
           Add New Customer
         </Button>
-        <Button variant='primary'>Export Search Data</Button>
       </div>
 
       {/* Modal Component */}

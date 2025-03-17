@@ -37,7 +37,7 @@ export default function Modal({
 
     setErrorMessage("");
     setLoading(true);
-    setCsvData([]); // ✅ Clear previous success result before upload starts
+    setCsvData([]);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -83,7 +83,7 @@ export default function Modal({
 
   return (
     <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-100'>
-      <div className='bg-white p-6 rounded-lg shadow-lg w-96 mt-[5em]'>
+      <div className='bg-white p-6 rounded-lg shadow-lg w-96 mt-[8em]'>
         <div className='flex justify-between items-center border-b pb-2'>
           <h2 className='text-lg font-semibold'>Add New Customer</h2>
           <button onClick={onClose} className='text-gray-600 hover:text-black'>
@@ -191,7 +191,7 @@ export default function Modal({
               />
               <button
                 className={`w-full py-2 rounded-md bg-blue-600 ${
-                  loading ? "bg-gray-400 cursor-not-allowed" : "bg-gray-500"
+                  loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600"
                 } text-white`}
                 onClick={handleUpload}
                 disabled={loading}
@@ -202,32 +202,46 @@ export default function Modal({
 
               {/* Display CSV Data in Table */}
               {csvData && csvData.length > 0 ? (
-                <div className='mt-4 overflow-auto max-h-[10rem] border rounded-md p-2 bg-gray-100'>
-                  <table className='w-full border-collapse border border-gray-300 text-sm'>
-                    <thead>
-                      <tr className='bg-gray-200'>
-                        {Object.keys(csvData[0]).map((header) => (
-                          <th key={header} className='border p-1'>
-                            {header}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {csvData.map((row, index) => (
-                        <tr
-                          key={index}
-                          className='odd:bg-white even:bg-gray-50'
-                        >
-                          {Object.values(row).map((value, idx) => (
-                            <td key={idx} className='border p-1'>
-                              {value as string}
-                            </td>
+                <div>
+                  <div className='mt-4 overflow-auto max-h-[10rem] border rounded-md p-2 bg-gray-100'>
+                    <table className='w-full border-collapse border border-gray-300 text-sm'>
+                      <thead>
+                        <tr className='bg-gray-200'>
+                          {Object.keys(csvData[0]).map((header) => (
+                            <th
+                              key={header}
+                              className='border p-1  border-collapse border border-gray-300'
+                            >
+                              {header}
+                            </th>
                           ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {csvData.map((row, index) => (
+                          <tr
+                            key={index}
+                            className='odd:bg-white even:bg-gray-50'
+                          >
+                            {Object.values(row).map((value, idx) => (
+                              <td key={idx} className='border p-1'>
+                                {value as string}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <button
+                    className={`w-full py-2 rounded-md bg-blue-600 mt-4 ${
+                      loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600"
+                    } text-white`}
+                    disabled={loading}
+                  >
+                    {loading ? "Exporting..." : "Export"}{" "}
+                    {/* ✅ Show loading text */}
+                  </button>
                 </div>
               ) : (
                 errorMessage && (

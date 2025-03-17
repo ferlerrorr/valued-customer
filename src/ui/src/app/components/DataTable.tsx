@@ -14,7 +14,7 @@ interface Customer {
   created_at: Date;
 }
 
-const PAGE_SIZES = [10, 25, 50, 100, 500] as const;
+const PAGE_SIZES = [10, 50, 100, 500, 1000] as const;
 type PageSizeOption = (typeof PAGE_SIZES)[number];
 
 const DataTable: React.FC = () => {
