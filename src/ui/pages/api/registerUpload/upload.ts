@@ -130,12 +130,12 @@ export default async function handler(
 
     // Prepare Values for Insert
     const values: (string | null)[][] = jsonData
-      .filter(({ "Customer Name": name }) => name?.trim()) // Prevent empty names
+      .filter(({ "Customer Name": name }) => name?.trim())
       .map(({ "Customer Name": name, "Mother Code": mother, Group }) => {
         const newVCustID = generateNewVCustID(lastVCustID);
-        lastVCustID = newVCustID; // Update for next iteration
+        lastVCustID = newVCustID;
         return [
-          newVCustID, // Manually assigned VCustID
+          newVCustID,
           name,
           mother ? mother.toString().padStart(12, "0") : null,
           Group,

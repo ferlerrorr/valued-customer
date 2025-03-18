@@ -15,11 +15,20 @@ export default function Modal({
     column3: string;
   };
 
+  type Customer = {
+    CustID: string;
+    VCustName: string;
+    Active: number;
+    MotherCode: string;
+    Vgroup: string;
+  };
+
   const [activeTab, setActiveTab] = useState<"form" | "upload">("form");
   const [file, setFile] = useState<File | null>(null);
   const [csvData, setCsvData] = useState<CsvRow[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [insertedVCustIDs, setInsertedVCustIDs] = useState<number[]>([]);
 
   if (!open) return null;
 
@@ -66,6 +75,9 @@ export default function Modal({
       }
 
       setCsvData(Array.isArray(result.data) ? result.data : []);
+      setInsertedVCustIDs(
+        Array.isArray(result.insertedVCustIDs) ? result.insertedVCustIDs : []
+      );
     } catch (error) {
       setCsvData([]);
 
@@ -78,6 +90,67 @@ export default function Modal({
       setErrorMessage(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!Array.isArray(insertedVCustIDs) || insertedVCustIDs.length === 0) {
+      alert("No valid Customer IDs for export.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/registerExport/export", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ insertedVCustIDs }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Failed to fetch export data:", errorText);
+        throw new Error(`Failed to fetch export data: ${errorText}`);
+      }
+
+      const result = await res.json();
+      const customers = result.customers;
+
+      if (!customers || customers.length === 0) {
+        alert("No data available for export.");
+        return;
+      }
+
+      // CSV headers
+      const headers = [
+        "Customer ID",
+        "Customer Name",
+        "isActive",
+        "Customer ID",
+        "Mother Code",
+        "Group",
+      ];
+
+      const rows = customers.map(
+        (customer: Customer) =>
+          `${customer.CustID},"${customer.VCustName}",${customer.Active},${customer.CustID},${customer.MotherCode},${customer.Vgroup}`
+      );
+
+      const csvContent = [headers.join(","), ...rows].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "valued-customers.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Export Error:", error);
+      alert("Failed to export data. Please try again.");
     }
   };
 
@@ -238,6 +311,7 @@ export default function Modal({
                       loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600"
                     } text-white`}
                     disabled={loading}
+                    onClick={handleExport}
                   >
                     {loading ? "Exporting..." : "Export"}{" "}
                     {/* ✅ Show loading text */}
