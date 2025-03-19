@@ -29,6 +29,11 @@ export default function Modal({
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [insertedVCustIDs, setInsertedVCustIDs] = useState<number[]>([]);
+  const [formData, setFormData] = useState({
+    name: "",
+    motherCode: "",
+    group: "",
+  });
 
   if (!open) return null;
 
@@ -153,6 +158,76 @@ export default function Modal({
       alert("Failed to export data. Please try again.");
     }
   };
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+
+    if (name) {
+      setFormData((prevData) => ({
+        ...prevData,
+        [name]: value,
+      }));
+    } else {
+      console.error("Input field is missing a valid 'name' attribute.");
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.name || !formData.motherCode || !formData.group) {
+      alert("All fields are required.");
+      return;
+    }
+
+    // Submit the form data
+    const response = await fetch("/api/register/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+
+      // Assuming the API response contains the inserted customer data in the 'data' field
+      if (data && data.data) {
+        const { VCustID, name, active, motherCode, group } = data.data;
+
+        // Now, you can create the CSV content from the response data
+        const csvHeaders = [
+          "VCustID",
+          "Customer Name",
+          "Mother Code",
+          "isActive",
+          "Group",
+        ];
+        const csvRows = [
+          `"${VCustID}","${name}","${motherCode}","${active}","${group}"`,
+        ];
+
+        const csvContent = [csvHeaders.join(","), ...csvRows].join("\n");
+
+        // Create a Blob from the CSV content
+        const blob = new Blob([csvContent], { type: "text/csv" });
+        const url = window.URL.createObjectURL(blob);
+
+        // Create a link to trigger the download
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `customer-export.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Revoke the URL to free up memory
+        window.URL.revokeObjectURL(url);
+      }
+    } else {
+      console.error("Failed to submit the form.");
+    }
+  };
 
   return (
     <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-100'>
@@ -191,7 +266,7 @@ export default function Modal({
 
           {/* Form Tab */}
           {activeTab === "form" && (
-            <form className='mt-4 space-y-4'>
+            <form onSubmit={handleSubmit} className='mt-4 space-y-4'>
               <div>
                 <label
                   htmlFor='name'
@@ -201,38 +276,44 @@ export default function Modal({
                 </label>
                 <input
                   id='name'
+                  name='name'
                   type='text'
                   placeholder='Enter Customer Name'
+                  onChange={handleChange}
                   className='w-full p-2 border rounded-md'
                   required
                 />
               </div>
               <div>
                 <label
-                  htmlFor='email'
+                  htmlFor='motherCode'
                   className='block text-sm font-medium text-gray-700'
                 >
                   Mother Code
                 </label>
                 <input
-                  id=' Mother Code'
+                  id='motherCode'
+                  name='motherCode'
                   type='text'
-                  placeholder='Enter email address'
+                  placeholder='Enter Mother Code'
+                  onChange={handleChange}
                   className='w-full p-2 border rounded-md'
                   required
                 />
               </div>
               <div>
                 <label
-                  htmlFor='email'
+                  htmlFor='group'
                   className='block text-sm font-medium text-gray-700'
                 >
                   Group
                 </label>
                 <input
                   id='group'
+                  name='group'
                   type='text'
-                  placeholder='Enter email address'
+                  placeholder='Enter Group'
+                  onChange={handleChange}
                   className='w-full p-2 border rounded-md'
                   required
                 />
@@ -240,12 +321,12 @@ export default function Modal({
               <button
                 type='submit'
                 className='w-full bg-blue-600 text-white py-2 rounded-md'
+                disabled={loading}
               >
-                Submit
+                {loading ? "Submitting..." : "Submit"}
               </button>
             </form>
           )}
-
           {/* File Upload Tab */}
           {activeTab === "upload" && (
             <div className='mt-4 space-y-4'>
