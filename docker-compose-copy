@@ -42,7 +42,7 @@ services:
     restart: unless-stopped
     tty: true
     ports:
-      - "3316:3316"
+      - "3306:3306"
     volumes:
       - ./mysql/data:/var/lib/mysql
     environment:
@@ -67,7 +67,7 @@ services:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - UPLOAD_LIMIT=10000M
     ports:
-      - "8989:80"
+      - "8080:80"
     volumes:
       - ./config/phpmyadmin/php.ini:/etc/php/7.x/fpm/conf.d/99-upload.ini
     links:
