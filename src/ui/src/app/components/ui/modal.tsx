@@ -197,14 +197,16 @@ export default function Modal({
 
         // Now, you can create the CSV content from the response data
         const csvHeaders = [
-          "VCustID",
+          "Customer ID",
           "Customer Name",
-          "Mother Code",
           "isActive",
+          "Customer ID",
+          "Mother Code",
           "Group",
         ];
+
         const csvRows = [
-          `"${VCustID}","${name}","${motherCode}","${active}","${group}"`,
+          `"${VCustID}","${name}","${motherCode}","${VCustID}","${active}","${group}"`,
         ];
 
         const csvContent = [csvHeaders.join(","), ...csvRows].join("\n");
