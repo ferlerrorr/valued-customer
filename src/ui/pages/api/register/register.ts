@@ -58,7 +58,7 @@ export default async function handler(
       const values = [
         newVCustID,
         name,
-        motherCode ? motherCode.toString().padStart(12, "0") : null,
+        motherCode ? motherCode.toString() : null,
         group,
       ];
 

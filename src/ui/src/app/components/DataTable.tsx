@@ -7,7 +7,7 @@ interface Customer {
   VCustID: string;
   VCustName: string;
   Active: number;
-  UpdateID: number;
+
   MotherCode: string;
   Vgroup: string;
   CompanyName: string;
@@ -58,7 +58,6 @@ const DataTable: React.FC = () => {
     | "VCustID"
     | "VCustName"
     | "Active"
-    | "UpdateID"
     | "MotherCode"
     | "Vgroup"
     | "CompanyName"
@@ -94,9 +93,8 @@ const DataTable: React.FC = () => {
   const columnMap: Record<string, keyof Customer> = {
     CustumerID: "VCustID",
     CustumerName: "VCustName",
-    "Active = 1 or 0": "Active",
+    Status: "Active",
     Group: "Vgroup",
-    UpdateID: "UpdateID",
     DateEnrolled: "created_at",
     CompanyName: "CompanyName",
     MotherCode: "MotherCode",
@@ -207,8 +205,7 @@ const DataTable: React.FC = () => {
               <option value='All'>All Columns</option>
               <option value='VCustID'>Customer ID</option>
               <option value='VCustName'>Customer Name</option>
-              <option value='Active'>Active</option>
-              <option value='UpdateID'>Update ID</option>
+              <option value='Active'>Status</option>
               <option value='MotherCode'>Mother Code</option>
               <option value='Vgroup'>Group</option>
               <option value='CompanyName'>Company Name</option>
@@ -237,8 +234,7 @@ const DataTable: React.FC = () => {
             {[
               "CustumerID",
               "CustumerName",
-              "Active = 1 or 0",
-              "UpdateID",
+              "Status",
               "MotherCode",
               "Group",
               "CompanyName",
@@ -276,7 +272,6 @@ const DataTable: React.FC = () => {
               <TableCell>
                 {customer.Active === 1 ? "Active" : "Inactive"}
               </TableCell>
-              <TableCell>{customer.UpdateID}</TableCell>
               <TableCell>{customer.MotherCode}</TableCell>
               <TableCell>{customer.Vgroup}</TableCell>
               <TableCell>{customer.CompanyName}</TableCell>

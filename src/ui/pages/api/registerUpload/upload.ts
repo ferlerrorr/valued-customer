@@ -134,12 +134,7 @@ export default async function handler(
       .map(({ "Customer Name": name, "Mother Code": mother, Group }) => {
         const newVCustID = generateNewVCustID(lastVCustID);
         lastVCustID = newVCustID;
-        return [
-          newVCustID,
-          name,
-          mother ? mother.toString().padStart(12, "0") : null,
-          Group,
-        ];
+        return [newVCustID, name, mother ? mother.toString() : null, Group];
       });
 
     // Insert into Database
