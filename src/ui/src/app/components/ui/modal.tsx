@@ -232,7 +232,10 @@ export default function Modal({
   };
 
   return (
-    <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-100'>
+    <div
+      className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-50'
+      style={{ zIndex: 100 }}
+    >
       <div className='bg-white p-6 rounded-lg shadow-lg w-96 mt-[8em]'>
         <div className='flex justify-between items-center border-b pb-2'>
           <h2 className='text-lg font-semibold'>Add New Customer</h2>
