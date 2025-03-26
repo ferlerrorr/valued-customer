@@ -38,9 +38,13 @@ const CustomerFilterModal: React.FC<Props> = ({ isOpen, onClose }) => {
   }, []);
 
   const uniqueOptions = (column: keyof Customer) => {
-    return Array.from(new Set(customers.map((c) => c[column]))).sort((a, b) =>
-      String(a).localeCompare(String(b))
-    );
+    return Array.from(
+      new Set(
+        customers
+          .map((c) => c[column])
+          .filter((val) => val && String(val).trim() !== "")
+      )
+    ).sort((a, b) => String(a).localeCompare(String(b)));
   };
 
   const filteredCustomers = customers.filter((customer) =>
@@ -51,6 +55,14 @@ const CustomerFilterModal: React.FC<Props> = ({ isOpen, onClose }) => {
           .toLowerCase()
           .includes(filterValue.toLowerCase())
   );
+  const handleExport = () => {
+    // console.log("Filtered customers:", filteredCustomers);
+    const vcustIds: string[] = filteredCustomers.map(
+      (customer) => customer.VCustID
+    );
+    // Log the VCustIDs as an array of strings
+    console.log("VCustID of all filtered customers:", vcustIds);
+  };
 
   const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
   const paginatedData = filteredCustomers.slice(
@@ -126,6 +138,14 @@ const CustomerFilterModal: React.FC<Props> = ({ isOpen, onClose }) => {
               }}
             />
           )}
+          <Button
+            disabled={!filterValue}
+            onClick={() => {
+              handleExport();
+            }}
+          >
+            Export
+          </Button>
         </div>
 
         {/* Table */}
