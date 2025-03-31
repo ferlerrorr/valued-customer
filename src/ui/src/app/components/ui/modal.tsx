@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type CsvRow = {
   VCustID: string;
@@ -15,6 +15,14 @@ type ModalProps = {
   onClose: () => void;
 };
 
+type Customer = {
+  VCustID: string;
+  VCustName: string;
+  Active: string;
+  MotherCode: string;
+  Vgroup: string;
+};
+
 export default function Modal({ open, onClose }: ModalProps) {
   const [activeTab, setActiveTab] = useState<"form" | "upload">("form");
   const [file, setFile] = useState<File | null>(null);
@@ -27,8 +35,33 @@ export default function Modal({ open, onClose }: ModalProps) {
     group: "",
   });
 
-  if (!open) return null;
+  const [vGroups, setVGroups] = useState<string[]>([]);
 
+  const isValidMotherCode = (code: string): boolean => {
+    return /^\d+-\d+$/.test(code);
+  };
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const response = await fetch("/customerData/customerData.json");
+        if (!response.ok) throw new Error("Failed to load customer data");
+
+        const data: Customer[] = await response.json();
+        const uniqueGroups = [
+          ...new Set(data.map((customer) => customer.Vgroup).filter(Boolean)),
+        ];
+
+        setVGroups(uniqueGroups);
+      } catch (error) {
+        console.error("Error fetching groups:", error);
+      }
+    };
+
+    fetchGroups();
+  }, []);
+
+  if (!open) return null;
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile?.type === "text/csv") {
@@ -40,26 +73,71 @@ export default function Modal({ open, onClose }: ModalProps) {
     }
   };
 
-  const parseCSV = (csvText: string): CsvRow[] => {
-    return csvText
-      .split("\n")
-      .filter(Boolean)
-      .slice(1)
-      .map((row) => {
-        const columns =
-          row
-            .match(/"([^"]*)"|([^,]+)/g)
-            ?.map((col) => col.replace(/"/g, "")) ?? [];
-        return {
-          VCustID: columns[0] ?? "",
-          VCustName: columns[1] ?? "",
-          Active: columns[2] ?? "",
-          MotherCode: columns[3] ?? "",
-          VGroup: columns[4] ?? "",
-        };
-      });
-  };
+  // const parseCSV = (csvText: string): CsvRow[] => {
+  //   return csvText
+  //     .split("\n")
+  //     .filter(Boolean)
+  //     .slice(1)
+  //     .map((row) => {
+  //       const columns =
+  //         row
+  //           .match(/"([^"]*)"|([^,]+)/g)
+  //           ?.map((col) => col.replace(/"/g, "")) ?? [];
 
+  //       const motherCode = columns[3] ?? "";
+
+  //       // Validate motherCode before adding it
+  //       if (!isValidMotherCode(motherCode)) {
+  //         setErrorMessage(
+  //           "Invalid motherCode in uploaded file. Must be in '123-456' format."
+  //         );
+  //         return null as any; // Skip invalid rows
+  //       }
+
+  //       return {
+  //         VCustID: columns[0] ?? "",
+  //         VCustName: columns[1] ?? "",
+  //         Active: columns[2] ?? "",
+  //         MotherCode: motherCode,
+  //         VGroup: columns[4] ?? "",
+  //       };
+  //     })
+  //     .filter(Boolean); // Remove any invalid rows
+  // };
+  const parseCSV = (csvText: string): CsvRow[] | null => {
+    const rows = csvText.split("\n").filter(Boolean).slice(1);
+
+    let hasError = false;
+
+    const parsedData = rows.map((row) => {
+      const columns =
+        row.match(/"([^"]*)"|([^,]+)/g)?.map((col) => col.replace(/"/g, "")) ??
+        [];
+
+      const motherCode = columns[3] ?? "";
+
+      if (!isValidMotherCode(motherCode)) {
+        hasError = true;
+      }
+
+      return {
+        VCustID: columns[0] ?? "",
+        VCustName: columns[1] ?? "",
+        Active: columns[2] ?? "",
+        MotherCode: motherCode,
+        VGroup: columns[4] ?? "",
+      };
+    });
+
+    if (hasError) {
+      setErrorMessage(
+        "Invalid motherCode in uploaded file. Must be in '123-456' format."
+      );
+      return null; // Prevent further processing
+    }
+
+    return parsedData;
+  };
   const handleUpload = async () => {
     if (!file) return;
 
@@ -85,7 +163,15 @@ export default function Modal({ open, onClose }: ModalProps) {
 
       if (!res.ok) throw new Error(result || "Unknown error occurred");
 
-      setCsvData(parseCSV(result));
+      const parsedData = parseCSV(result);
+
+      if (!parsedData) {
+        // If there's an error in parsing, stop further execution
+        setLoading(false);
+        return;
+      }
+
+      setCsvData(parsedData);
 
       const csvRows = result.split("\n").slice(1).join("\n");
 
@@ -124,8 +210,13 @@ export default function Modal({ open, onClose }: ModalProps) {
       return;
     }
 
+    if (!isValidMotherCode(formData.motherCode)) {
+      setErrorMessage("Invalid motherCode. Must be in '123-456' format.");
+      return;
+    }
+
     try {
-      const response = await fetch("/api/register", {
+      const response = await fetch("/api/register/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -137,12 +228,12 @@ export default function Modal({ open, onClose }: ModalProps) {
         let errorMessage = "Submission failed. Please try again.";
 
         try {
-          const errorResponse = await response.json();
+          const errorResponse = await response.clone().json();
           if (errorResponse?.error) {
             errorMessage = errorResponse.error;
           }
         } catch {
-          console.error("API Error:", response.status, await response.text());
+          console.error("API Error:", response.status);
         }
 
         setErrorMessage(errorMessage);
@@ -199,6 +290,11 @@ export default function Modal({ open, onClose }: ModalProps) {
         </div>
 
         <div className='mt-4'>
+          {errorMessage && (
+            <div className='mt-2 p-2 bg-red-100 text-red-700 border border-red-400 rounded'>
+              {errorMessage}
+            </div>
+          )}
           <div className='flex border-b'>
             {["form", "upload"].map((tab) => (
               <button
@@ -216,36 +312,60 @@ export default function Modal({ open, onClose }: ModalProps) {
           </div>
 
           {activeTab === "form" ? (
-            <form onSubmit={handleSubmit} className='mt-4 space-y-4'>
-              {Object.keys(formData).map((key) => (
-                <div key={key}>
-                  <label className='block text-sm font-medium'>
-                    {key
-                      .replace(/^V?/, "")
-                      .replace(/([A-Z])/g, " $1")
-                      .trim()}
-                  </label>
-                  <input
-                    type='text'
-                    className='w-full p-2 border rounded-md'
-                    value={formData[key as keyof typeof formData]}
-                    onChange={(e) =>
-                      setFormData({ ...formData, [key]: e.target.value })
-                    }
-                    required={key !== "MotherCode" && key !== "VGroup"}
-                  />
-                </div>
-              ))}
+            <form className='mt-4 space-y-4' onSubmit={handleSubmit}>
+              <div>
+                <label className='block text-sm font-medium'>
+                  Customer Name
+                </label>
+                <input
+                  type='text'
+                  className='w-full p-2 border rounded-md'
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  required
+                />
+              </div>
+
+              <div>
+                <label className='block text-sm font-medium'>Mother Code</label>
+                <input
+                  type='text'
+                  className='w-full p-2 border rounded-md'
+                  value={formData.motherCode}
+                  onChange={(e) =>
+                    setFormData({ ...formData, motherCode: e.target.value })
+                  }
+                />
+              </div>
+
+              {/* Group Selection Dropdown */}
+              <div>
+                <label className='block text-sm font-medium'>Group</label>
+                <select
+                  className='w-full p-2 border rounded-md'
+                  value={formData.group}
+                  onChange={(e) =>
+                    setFormData({ ...formData, group: e.target.value })
+                  }
+                  required
+                >
+                  <option value=''>Select a Group</option>
+                  {vGroups.map((group) => (
+                    <option key={group} value={group}>
+                      {group}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <button
                 type='submit'
                 className='w-full py-2 bg-blue-600 text-white rounded-md'
               >
                 Submit
               </button>
-              {/* Display error message only if it exists */}
-              {errorMessage && (
-                <p className='mt-2 text-sm text-red-600'>{errorMessage}</p>
-              )}
             </form>
           ) : (
             <div className='mt-4 space-y-4'>

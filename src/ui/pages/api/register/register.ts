@@ -36,7 +36,7 @@ export default async function handler(
   if (req.method === "POST") {
     const { name, motherCode, group } = req.body;
 
-    if (!name || !motherCode || !group) {
+    if (!name?.trim() || !group?.trim()) {
       return res.status(400).json({ error: "All fields are required." });
     }
 
@@ -46,7 +46,9 @@ export default async function handler(
 
       // Fetch the last VCustID from the database to generate the next one
       const [lastRow] = await connection.query<RowDataPacket[]>(
-        `SELECT VCustID FROM valuedcustomer ORDER BY VCustID DESC LIMIT 1`
+        `SELECT VCustID FROM valuedcustomer 
+        ORDER BY CAST(REPLACE(VCustID, '-', '') AS UNSIGNED) DESC 
+        LIMIT 1`
       );
       const lastVCustID =
         lastRow.length > 0 ? lastRow[0].VCustID : "9000-000000";

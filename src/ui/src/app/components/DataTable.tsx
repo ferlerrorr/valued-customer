@@ -7,13 +7,21 @@ interface Customer {
   VCustID: string;
   VCustName: string;
   Active: number;
-
   MotherCode: string;
   Vgroup: string;
   CompanyName: string;
   created_at: Date;
 }
 
+const columnHeaders = {
+  VCustID: "Customer ID",
+  VCustName: "Customer Name",
+  Active: "Status",
+  MotherCode: "Mother Code",
+  Vgroup: "Group",
+  CompanyName: "Company Name",
+  created_at: "Date Enrolled",
+};
 const PAGE_SIZES = [10, 50, 100, 500, 1000] as const;
 type PageSizeOption = (typeof PAGE_SIZES)[number];
 
@@ -28,6 +36,12 @@ const DataTable: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
     null
   );
+  const [vgroupOptions, setVgroupOptions] = useState<string[]>([]);
+
+  useEffect(() => {
+    const uniqueVgroups = [...new Set(data.map((customer) => customer.Vgroup))];
+    setVgroupOptions(uniqueVgroups);
+  }, [data]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -147,23 +161,28 @@ const DataTable: React.FC = () => {
     setSelectedCustomer({ ...customer });
   };
 
-  const handleUpdate = () => {
-    if (!selectedCustomer) return;
-    setData((prevData) =>
-      prevData.map((customer) =>
-        customer.VCustID === selectedCustomer.VCustID
-          ? selectedCustomer
-          : customer
-      )
-    );
-    setFilteredData((prevData) =>
-      prevData.map((customer) =>
-        customer.VCustID === selectedCustomer.VCustID
-          ? selectedCustomer
-          : customer
-      )
-    );
-    setSelectedCustomer(null);
+  // const handleUpdate = () => {
+  //   if (!selectedCustomer) return;
+  //   setData((prevData) =>
+  //     prevData.map((customer) =>
+  //       customer.VCustID === selectedCustomer.VCustID
+  //         ? selectedCustomer
+  //         : customer
+  //     )
+  //   );
+  //   setFilteredData((prevData) =>
+  //     prevData.map((customer) =>
+  //       customer.VCustID === selectedCustomer.VCustID
+  //         ? selectedCustomer
+  //         : customer
+  //     )
+  //   );
+  //   setSelectedCustomer(null);
+  // };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log(selectedCustomer);
   };
 
   return (
@@ -312,66 +331,105 @@ const DataTable: React.FC = () => {
       )}
 
       {/* Modal */}
-      {/* Modal Form For insert and some Form Validation */}
       {selectedCustomer && (
         <div className='fixed inset-0 flex items-center justify-center bg-black bg-opacity-50'>
-          <div className='bg-white p-6 rounded-lg shadow-lg w-96'>
+          <div className='bg-white p-6 rounded-lg shadow-lg w-full max-w-md'>
             <h2 className='text-xl font-semibold mb-4'>Edit Customer</h2>
 
-            {Object.entries(selectedCustomer).map(([key, value]) => (
-              <div key={key} className='mb-3'>
-                <label className='block text-sm font-medium mb-1'>{key}</label>
+            <form onSubmit={handleSubmit}>
+              {Object.entries(selectedCustomer).map(([key, value]) => {
+                // Skip UpdateID field
+                if (key === "UpdateID") return null;
 
-                {key === "Active" ? (
-                  // Toggle Slider for Active Status (Reversed Logic)
-                  <div
-                    className={`relative w-14 h-7 flex items-center rounded-full pl-[2px] cursor-pointer transition-colors ${
-                      selectedCustomer.Active === 1
-                        ? "bg-green-500"
-                        : "bg-gray-600"
-                    }`}
-                    onClick={() =>
-                      setSelectedCustomer({
-                        ...selectedCustomer,
-                        Active: selectedCustomer.Active === 1 ? 0 : 1, // Toggle active state
-                      })
-                    }
-                  >
-                    <div
-                      className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform ${
-                        selectedCustomer.Active === 1
-                          ? "translate-x-0"
-                          : "translate-x-7"
-                      }`}
-                    ></div>
+                return (
+                  <div key={key} className='mb-4'>
+                    <label className='block text-sm font-medium mb-1'>
+                      {columnHeaders[key as keyof typeof columnHeaders] || key}
+                    </label>
+
+                    {key === "Active" ? (
+                      // Toggle Slider for Active Status
+                      <div
+                        className={`relative w-14 h-7 flex items-center rounded-full pl-[2px] cursor-pointer transition-colors ${
+                          selectedCustomer.Active === 1
+                            ? "bg-green-500"
+                            : "bg-gray-600"
+                        }`}
+                        onClick={() =>
+                          setSelectedCustomer({
+                            ...selectedCustomer,
+                            Active: selectedCustomer.Active === 1 ? 0 : 1,
+                          })
+                        }
+                      >
+                        <div
+                          className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform ${
+                            selectedCustomer.Active === 1
+                              ? "translate-x-0"
+                              : "translate-x-7"
+                          }`}
+                        ></div>
+                      </div>
+                    ) : key === "Vgroup" ? (
+                      // Dropdown Selection for Group
+                      <select
+                        value={selectedCustomer.Vgroup || ""}
+                        onChange={(e) =>
+                          setSelectedCustomer({
+                            ...selectedCustomer,
+                            Vgroup: e.target.value,
+                          })
+                        }
+                        className='mt-1 block w-full p-2 border border-gray-300 rounded-md sm:text-sm'
+                      >
+                        <option value='' disabled>
+                          Select Group
+                        </option>
+                        {vgroupOptions.map((group) => (
+                          <option key={group} value={group}>
+                            {group}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      // Regular Input for Other Fields
+                      <Input
+                        value={
+                          key === "created_at" && value
+                            ? new Date(value).toISOString().split("T")[0]
+                            : value !== null && value !== undefined
+                            ? String(value)
+                            : ""
+                        }
+                        onChange={(e) =>
+                          setSelectedCustomer({
+                            ...selectedCustomer,
+                            [key]: e.target.value,
+                          })
+                        }
+                        disabled={
+                          key === "VCustID" ||
+                          key === "created_at" ||
+                          key === "CompanyName"
+                        }
+                      />
+                    )}
                   </div>
-                ) : (
-                  // Regular Input for Other Fields
-                  <Input
-                    value={value}
-                    onChange={(e) =>
-                      setSelectedCustomer({
-                        ...selectedCustomer,
-                        [key]: e.target.value,
-                      })
-                    }
-                    disabled={key === "VCustID"}
-                  />
-                )}
-              </div>
-            ))}
+                );
+              })}
 
-            <div className='flex justify-end gap-2 mt-4'>
-              <Button variant='primary' onClick={handleUpdate}>
-                Update
-              </Button>
-              <Button
-                variant='outline'
-                onClick={() => setSelectedCustomer(null)}
-              >
-                Cancel
-              </Button>
-            </div>
+              <div className='flex justify-end gap-3 mt-6'>
+                <Button variant='primary' type='submit'>
+                  Update
+                </Button>
+                <Button
+                  variant='outline'
+                  onClick={() => setSelectedCustomer(null)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}
