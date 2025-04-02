@@ -16,15 +16,14 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
-// Function to generate a new VCustID
 function generateNewVCustID(lastVCustID: string): string {
-  let nextID = "9000-000001"; // Default ID
+  let nextID = "9000-000001";
   if (lastVCustID) {
-    const numericID = lastVCustID.replace("-", ""); // Remove dash
+    const numericID = lastVCustID.replace("-", "");
     const incrementedID = (parseInt(numericID, 10) + 1)
       .toString()
       .padStart(10, "0");
-    nextID = `${incrementedID.slice(0, 4)}-${incrementedID.slice(4)}`; // Reinsert dash
+    nextID = `${incrementedID.slice(0, 4)}-${incrementedID.slice(4)}`;
   }
   return nextID;
 }
@@ -37,7 +36,7 @@ export default async function handler(
     const { name, motherCode, group } = req.body;
 
     if (!name?.trim() || !group?.trim()) {
-      return res.status(400).json({ error: "All fields are required." });
+      return res.status(400).json({ error: "Name and Group are required." });
     }
 
     let connection: PoolConnection | null = null;
@@ -60,7 +59,7 @@ export default async function handler(
       const values = [
         newVCustID,
         name,
-        motherCode ? motherCode.toString() : null,
+        motherCode ? motherCode.toString() : "",
         group,
       ];
 

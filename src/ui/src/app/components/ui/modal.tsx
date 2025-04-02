@@ -73,71 +73,56 @@ export default function Modal({ open, onClose }: ModalProps) {
     }
   };
 
-  // const parseCSV = (csvText: string): CsvRow[] => {
-  //   return csvText
-  //     .split("\n")
-  //     .filter(Boolean)
-  //     .slice(1)
-  //     .map((row) => {
-  //       const columns =
-  //         row
-  //           .match(/"([^"]*)"|([^,]+)/g)
-  //           ?.map((col) => col.replace(/"/g, "")) ?? [];
-
-  //       const motherCode = columns[3] ?? "";
-
-  //       // Validate motherCode before adding it
-  //       if (!isValidMotherCode(motherCode)) {
-  //         setErrorMessage(
-  //           "Invalid motherCode in uploaded file. Must be in '123-456' format."
-  //         );
-  //         return null as any; // Skip invalid rows
-  //       }
-
-  //       return {
-  //         VCustID: columns[0] ?? "",
-  //         VCustName: columns[1] ?? "",
-  //         Active: columns[2] ?? "",
-  //         MotherCode: motherCode,
-  //         VGroup: columns[4] ?? "",
-  //       };
-  //     })
-  //     .filter(Boolean); // Remove any invalid rows
-  // };
   const parseCSV = (csvText: string): CsvRow[] | null => {
     const rows = csvText.split("\n").filter(Boolean).slice(1);
 
     let hasError = false;
-
-    const parsedData = rows.map((row) => {
+    const parsedData: CsvRow[] = rows.map((row) => {
+      // Updated regex to handle commas inside quotes
       const columns =
-        row.match(/"([^"]*)"|([^,]+)/g)?.map((col) => col.replace(/"/g, "")) ??
-        [];
+        row
+          .match(/"(.*?)"|([^",]+)/g)
+          ?.map((col) => col.replace(/(^"|"$)/g, "").trim()) ?? [];
 
-      const motherCode = columns[3] ?? "";
+      while (columns.length < 5) {
+        columns.push("");
+      }
 
-      if (!isValidMotherCode(motherCode)) {
+      const VCustID = columns[0] ?? "";
+      const VCustName = columns[1] ?? "";
+      const Active = columns[2] ?? "";
+      let MotherCode = columns[3] === "" ? "" : columns[3];
+      let VGroup = columns[4] ?? "";
+
+      if (VGroup === "") {
+        VGroup = MotherCode;
+        MotherCode = "";
+      }
+
+      if (MotherCode !== "" && !MotherCode.includes("-")) {
+        setErrorMessage("Invalid MotherCode. Must be in '123-456' format.");
         hasError = true;
       }
 
       return {
-        VCustID: columns[0] ?? "",
-        VCustName: columns[1] ?? "",
-        Active: columns[2] ?? "",
-        MotherCode: motherCode,
-        VGroup: columns[4] ?? "",
+        VCustID,
+        VCustName,
+        Active,
+        MotherCode,
+        VGroup,
       };
     });
 
     if (hasError) {
-      setErrorMessage(
-        "Invalid motherCode in uploaded file. Must be in '123-456' format."
-      );
-      return null; // Prevent further processing
+      console.error("There were errors in parsing the CSV data.");
+      return null;
     }
+
+    console.log(parsedData);
 
     return parsedData;
   };
+
   const handleUpload = async () => {
     if (!file) return;
 
@@ -166,18 +151,45 @@ export default function Modal({ open, onClose }: ModalProps) {
       const parsedData = parseCSV(result);
 
       if (!parsedData) {
-        // If there's an error in parsing, stop further execution
         setLoading(false);
         return;
       }
 
       setCsvData(parsedData);
 
-      const csvRows = result.split("\n").slice(1).join("\n");
+      const csvRows = parsedData
+        .map((row) => {
+          const columns = [
+            row.VCustID,
+            row.VCustName,
+            row.Active,
+            row.MotherCode,
+            row.VGroup,
+          ];
+
+          const escapedColumns = columns.map((col) => {
+            if (col == null) return "";
+
+            let escapedCol = col.toString();
+
+            if (escapedCol.includes('"')) {
+              escapedCol = escapedCol.replace(/"/g, '""');
+            }
+
+            if (escapedCol.includes(",") || escapedCol.includes("\n")) {
+              escapedCol = `"${escapedCol}"`;
+            }
+            return escapedCol;
+          });
+
+          return escapedColumns.join(",");
+        })
+        .join("\r\n");
 
       const fileName = `MSSVAC${new Date()
         .toLocaleDateString("en-GB")
         .replace(/\//g, "")}.csv`;
+
       const blob = new Blob([csvRows], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
 
@@ -187,6 +199,7 @@ export default function Modal({ open, onClose }: ModalProps) {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+
       URL.revokeObjectURL(url);
     } catch (error) {
       setErrorMessage(
@@ -205,13 +218,13 @@ export default function Modal({ open, onClose }: ModalProps) {
     e.preventDefault();
     setErrorMessage("");
 
-    if (!formData.name || !formData.motherCode || !formData.group) {
-      setErrorMessage("All fields are required.");
+    if (!formData.name || !formData.group) {
+      setErrorMessage("Name and Group are required.");
       return;
     }
 
-    if (!isValidMotherCode(formData.motherCode)) {
-      setErrorMessage("Invalid motherCode. Must be in '123-456' format.");
+    if (formData.motherCode && !isValidMotherCode(formData.motherCode)) {
+      setErrorMessage("Invalid MotherCode. Must be in '123-456' format.");
       return;
     }
 
@@ -245,19 +258,11 @@ export default function Modal({ open, onClose }: ModalProps) {
       if (data && data.data) {
         const { VCustID, name, active, motherCode, group } = data.data;
 
-        const csvHeaders = [
-          "Customer ID",
-          "Customer Name",
-          "Active",
-          "Mother Code",
-          "Group",
-        ];
-
         const csvRows = [
           `"${VCustID}","${name}","${active}","${motherCode}","${group}"`,
         ];
 
-        const csvContent = [csvHeaders.join(","), ...csvRows].join("\n");
+        const csvContent = csvRows.join("\r\n");
 
         const blob = new Blob([csvContent], { type: "text/csv" });
         const url = window.URL.createObjectURL(blob);
@@ -267,11 +272,20 @@ export default function Modal({ open, onClose }: ModalProps) {
         link.download = `MSSVAC${new Date()
           .toLocaleDateString("en-GB")
           .replace(/\//g, "")}.csv`;
+
+        // Trigger the download
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
 
+        // Clean up the URL object
         window.URL.revokeObjectURL(url);
+
+        setFormData({
+          name: "",
+          motherCode: "",
+          group: "",
+        });
       }
     } catch (error) {
       console.error("Unexpected Error:", error);
