@@ -88,7 +88,6 @@ const DataTable: React.FC = () => {
               String(value).toLowerCase().includes(search.toLowerCase())
           );
         } else if (searchColumn === "created_at") {
-          // Check if any alphanumeric character is present
           return (
             /\w/.test(search) &&
             String(customer[searchColumn])
@@ -127,7 +126,6 @@ const DataTable: React.FC = () => {
         const valA = a[column];
         const valB = b[column];
 
-        // Handle null values (push nulls to bottom)
         if (valA === null) return order === "asc" ? 1 : -1;
         if (valB === null) return order === "asc" ? -1 : 1;
 
@@ -138,12 +136,10 @@ const DataTable: React.FC = () => {
             : new Date(valB).getTime() - new Date(valA).getTime();
         }
 
-        // Sort numbers correctly
         if (typeof valA === "number" && typeof valB === "number") {
           return order === "asc" ? valA - valB : valB - valA;
         }
 
-        // Sort strings correctly
         return order === "asc"
           ? String(valA).localeCompare(String(valB))
           : String(valB).localeCompare(String(valA));
@@ -160,29 +156,62 @@ const DataTable: React.FC = () => {
   const handleEditClick = (customer: Customer) => {
     setSelectedCustomer({ ...customer });
   };
-
-  // const handleUpdate = () => {
-  //   if (!selectedCustomer) return;
-  //   setData((prevData) =>
-  //     prevData.map((customer) =>
-  //       customer.VCustID === selectedCustomer.VCustID
-  //         ? selectedCustomer
-  //         : customer
-  //     )
-  //   );
-  //   setFilteredData((prevData) =>
-  //     prevData.map((customer) =>
-  //       customer.VCustID === selectedCustomer.VCustID
-  //         ? selectedCustomer
-  //         : customer
-  //     )
-  //   );
-  //   setSelectedCustomer(null);
-  // };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(selectedCustomer);
+
+    if (
+      !selectedCustomer ||
+      !selectedCustomer.VCustID ||
+      !selectedCustomer.VCustName
+    ) {
+      alert("No customer selected or required fields are missing.");
+      return;
+    }
+
+    try {
+      console.log("Sending customer data:", selectedCustomer);
+
+      const response = await fetch("/api/updateCustomer/updateCustomer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(selectedCustomer),
+      });
+
+      const responseData = await response.json();
+      console.log("API Response:", responseData);
+
+      if (!response.ok) {
+        throw new Error(responseData.error || "Failed to update customer");
+      }
+
+      const updateData = (data: Customer[]) =>
+        data.map((customer) =>
+          customer.VCustID === responseData.VCustID ? responseData : customer
+        );
+
+      setData(updateData);
+      setFilteredData(updateData);
+
+      setSelectedCustomer(null);
+
+      const apiResponse = await fetch("/api/valuedCustomer/valuedCustomer");
+
+      if (!apiResponse.ok) {
+        throw new Error("API failed to fetch updated customer data");
+      }
+
+      const apiData: Customer[] = await apiResponse.json();
+
+      setData(apiData);
+      setFilteredData(apiData);
+    } catch (error) {
+      console.error("Error updating customer:", error);
+      alert(
+        error instanceof Error ? error.message : "An unknown error occurred."
+      );
+    }
   };
 
   return (

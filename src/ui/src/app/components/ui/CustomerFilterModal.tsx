@@ -55,13 +55,48 @@ const CustomerFilterModal: React.FC<Props> = ({ isOpen, onClose }) => {
           .toLowerCase()
           .includes(filterValue.toLowerCase())
   );
-  const handleExport = () => {
-    // console.log("Filtered customers:", filteredCustomers);
-    const vcustIds: string[] = filteredCustomers.map(
-      (customer) => customer.VCustID
-    );
-    // Log the VCustIDs as an array of strings
-    console.log("VCustID of all filtered customers:", vcustIds);
+
+  const handleExport = async () => {
+    try {
+      const vcustIds: string[] = filteredCustomers.map(
+        (customer) => customer.VCustID
+      );
+
+      const response = await fetch("/api/Customer/customer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          vcustIds,
+        }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "ValuedCustomer.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        URL.revokeObjectURL(url);
+      } else {
+        const errorDetails = await response.text();
+        console.error(
+          "Failed to fetch CSV from the server. Status:",
+          response.status,
+          "Details:",
+          errorDetails
+        );
+      }
+    } catch (error) {
+      console.error("Error exporting data:", error);
+    }
   };
 
   const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
