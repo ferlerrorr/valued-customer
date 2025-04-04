@@ -20,9 +20,7 @@ export default function Home() {
         </Button>
         {/* Modal Component */}
         <Modal open={isOpen} onClose={() => setIsOpen(false)} />
-        <Button onClick={() => setIsModalOpen(true)}>
-          Open Customer Filter
-        </Button>
+        <Button onClick={() => setIsModalOpen(true)}>Customer Reports</Button>
         <CustomerFilterModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}

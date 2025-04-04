@@ -110,7 +110,7 @@ const CustomerFilterModal: React.FC<Props> = ({ isOpen, onClose }) => {
   return (
     <div className='fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50'>
       <div className='bg-white mb-[8em] p-6 rounded-lg shadow-lg max-w-5xl w-full relative'>
-        <h2 className='text-xl font-bold mb-4'>Customer Filter</h2>
+        <h2 className='text-xl font-bold mb-4'>Customer Reports</h2>
         <button
           className='absolute top-2 right-4 text-gray-500'
           onClick={onClose}
