@@ -156,6 +156,7 @@ const DataTable: React.FC = () => {
   const handleEditClick = (customer: Customer) => {
     setSelectedCustomer({ ...customer });
   };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -385,17 +386,17 @@ const DataTable: React.FC = () => {
                             : "bg-gray-600"
                         }`}
                         onClick={() =>
-                          setSelectedCustomer({
-                            ...selectedCustomer,
-                            Active: selectedCustomer.Active === 1 ? 0 : 1,
-                          })
+                          setSelectedCustomer((prev) => ({
+                            ...prev!,
+                            Active: prev!.Active === 1 ? 0 : 1,
+                          }))
                         }
                       >
                         <div
                           className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform ${
                             selectedCustomer.Active === 1
-                              ? "translate-x-0"
-                              : "translate-x-7"
+                              ? "translate-x-7"
+                              : "translate-x-0"
                           }`}
                         ></div>
                       </div>

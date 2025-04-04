@@ -26,8 +26,8 @@ export default async function handler(
 
     connection = await pool.getConnection();
     console.log("Database connection established");
-
-    const { VCustID, VCustName, status, MotherCode, Vgroup } = req.body;
+    const { VCustID, VCustName, Active, MotherCode, Vgroup } = req.body;
+    const activeStatus = Number(Active) === 1 ? 1 : 0;
 
     if (!VCustID || !VCustName) {
       return res
@@ -35,14 +35,13 @@ export default async function handler(
         .json({ error: "Customer ID and Name are required." });
     }
 
-    const activeStatus = status ? 1 : 0;
+    console.log("Converted status value:", activeStatus);
 
     const query = `
       UPDATE valuedcustomer
       SET VCustName = ?, Active = ?, MotherCode = ?, Vgroup = ?
       WHERE VCustID = ?`;
 
-    // Explicitly typing the result as an array of RowDataPacket
     const [result] = await connection.execute<RowDataPacket[]>(query, [
       VCustName,
       activeStatus,
@@ -53,14 +52,12 @@ export default async function handler(
 
     console.log("Update result:", result);
 
-    // Typing affectedRows as part of the RowDataPacket result
-    if (result.length === 0 || result[0]?.affectedRows === 0) {
+    if (!result || (result as RowDataPacket).affectedRows === 0) {
       return res
         .status(404)
         .json({ error: "Customer not found or no changes made." });
     }
 
-    // Fetch updated customer details
     const [updatedCustomer] = await connection.execute<RowDataPacket[]>(
       "SELECT * FROM valuedcustomer WHERE VCustID = ?",
       [VCustID]

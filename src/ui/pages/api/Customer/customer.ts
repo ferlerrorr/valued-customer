@@ -40,18 +40,32 @@ export default async function handler(
         .json({ error: "No customers found for the provided VCustIDs" });
     }
 
-    const vcustMap = new Map(
-      customers.map((customer) => [customer.VCustID, customer.VCustName])
+    // Fetch CompanyName for each MotherCode (which should match VCustID in other rows)
+    const motherCodes = [
+      ...new Set(customers.map((customer) => customer.MotherCode)),
+    ];
+    const companyQuery = `
+      SELECT VCustID, VCustName 
+      FROM valuedcustomer 
+      WHERE VCustID IN (?)`;
+
+    const [companies] = await connection.query<RowDataPacket[]>(companyQuery, [
+      motherCodes,
+    ]);
+
+    const companyMap = new Map(
+      companies.map((company) => [company.VCustID, company.VCustName])
     );
 
     customers.forEach((customer) => {
-      if (customer.MotherCode && vcustMap.has(customer.MotherCode)) {
-        customer.CompanyName = vcustMap.get(customer.MotherCode) || "";
+      if (customer.MotherCode && companyMap.has(customer.MotherCode)) {
+        customer.CompanyName = companyMap.get(customer.MotherCode) || "";
       } else {
         customer.CompanyName = "";
       }
     });
 
+    // Prepare the CSV data
     const headers = "CompanyName,BPName,MotherCode,Status,Group,DateEnrolled\n";
     const csvData = customers
       .map((customer) => {
